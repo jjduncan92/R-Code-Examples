@@ -1,0 +1,277 @@
+> #breast cancer data, creating a decision tree to predict diagnosis based on a few predictors
+> setwd("C:/Users/James Jaffray Duncan/Desktop/Code Examples/Resources")
+> mydata<-read.csv("breast_cancer.csv")
+> str(mydata) #569 observations on 32 variables
+'data.frame':	569 obs. of  32 variables:
+ $ id               : int  87139402 8910251 905520 868871 9012568 906539 925291 87880 862989 89827 ...
+ $ diagnosis        : Factor w/ 2 levels "B","M": 1 1 1 1 1 1 1 2 1 1 ...
+ $ radius_mean      : num  12.3 10.6 11 11.3 15.2 ...
+ $ texture_mean     : num  12.4 18.9 16.8 13.4 13.2 ...
+ $ perimeter_mean   : num  78.8 69.3 70.9 73 97.7 ...
+ $ area_mean        : num  464 346 373 385 712 ...
+ $ smoothness_mean  : num  0.1028 0.0969 0.1077 0.1164 0.0796 ...
+ $ compactness_mean : num  0.0698 0.1147 0.078 0.1136 0.0693 ...
+ $ concavity_mean   : num  0.0399 0.0639 0.0305 0.0464 0.0339 ...
+ $ points_mean      : num  0.037 0.0264 0.0248 0.048 0.0266 ...
+ $ symmetry_mean    : num  0.196 0.192 0.171 0.177 0.172 ...
+ $ dimension_mean   : num  0.0595 0.0649 0.0634 0.0607 0.0554 ...
+ $ radius_se        : num  0.236 0.451 0.197 0.338 0.178 ...
+ $ texture_se       : num  0.666 1.197 1.387 1.343 0.412 ...
+ $ perimeter_se     : num  1.67 3.43 1.34 1.85 1.34 ...
+ $ area_se          : num  17.4 27.1 13.5 26.3 17.7 ...
+ $ smoothness_se    : num  0.00805 0.00747 0.00516 0.01127 0.00501 ...
+ $ compactness_se   : num  0.0118 0.03581 0.00936 0.03498 0.01485 ...
+ $ concavity_se     : num  0.0168 0.0335 0.0106 0.0219 0.0155 ...
+ $ points_se        : num  0.01241 0.01365 0.00748 0.01965 0.00915 ...
+ $ symmetry_se      : num  0.0192 0.035 0.0172 0.0158 0.0165 ...
+ $ dimension_se     : num  0.00225 0.00332 0.0022 0.00344 0.00177 ...
+ $ radius_worst     : num  13.5 11.9 12.4 11.9 16.2 ...
+ $ texture_worst    : num  15.6 22.9 26.4 15.8 15.7 ...
+ $ perimeter_worst  : num  87 78.3 79.9 76.5 104.5 ...
+ $ area_worst       : num  549 425 471 434 819 ...
+ $ smoothness_worst : num  0.139 0.121 0.137 0.137 0.113 ...
+ $ compactness_worst: num  0.127 0.252 0.148 0.182 0.174 ...
+ $ concavity_worst  : num  0.1242 0.1916 0.1067 0.0867 0.1362 ...
+ $ points_worst     : num  0.0939 0.0793 0.0743 0.0861 0.0818 ...
+ $ symmetry_worst   : num  0.283 0.294 0.3 0.21 0.249 ...
+ $ dimension_worst  : num  0.0677 0.0759 0.0788 0.0678 0.0677 ...
+> #lets look at correlation tables to see which values are correlated with diagnosis
+> library(psych)
+> pairs.panels(mydata[2:8]) #use radius_mean as a measure for perimeter_mean and area_mean
+> pairs.panels(mydata[c(2,9:15)]) #use concavity_mean for points_mean, and use radiu_se and perimeter_se
+> pairs.panels(mydata[c(2,16:21)]) #use area_se
+> pairs.panels(mydata[c(2,22:27)]) #use radius_worst as a measure for perimeter_worst and area_worst
+> pairs.panels(mydata[c(2,26:32)]) #use points_worst
+> 
+> #now lets create a decision tree
+> library(ggplot2)
+
+Attaching package: ‘ggplot2’
+
+The following objects are masked from ‘package:psych’:
+
+    %+%, alpha
+
+> rad_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=radius_mean))
+> con_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=concavity_mean))
+> area_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=area_se))
+> rad_worst_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=radius_worst))
+> library(gridExtra)
+> grid.arrange(rad_plot,con_plot,area_plot,rad_worst_plot,nrow=2,ncol=2)
+> library(caret)
+Loading required package: lattice
+> inTrain<-createDataPartition(y=mydata$diagnosis,p=0.7,list=FALSE)
+> training<-mydata[inTrain,]
+> testing<-mydata[-inTrain,]
+> dim(training);dim(testing)
+[1] 399  32
+[1] 170  32
+> table(training$diagnosis)
+
+  B   M 
+250 149 
+> table(testing$diagnosis)
+
+  B   M 
+107  63 
+> library(C50)
+> model<-C5.0(training[-2],training$diagnosis)
+> summary(model) # a decision tree of 11 levels, error rate is 1.0%, mostly uses perimeter_worst,points_worst,area_se, and points_mean
+
+Call:
+C5.0.default(x = training[-2], y = training$diagnosis)
+
+
+C5.0 [Release 2.07 GPL Edition]  	Thu Mar 03 23:57:11 2016
+-------------------------------
+
+Class specified by attribute `outcome'
+
+Read 399 cases (32 attributes) from undefined.data
+
+Decision tree:
+
+radius_worst > 16.77:
+:...texture_mean <= 14.65:
+:   :...dimension_se <= 0.003249: B (4)
+:   :   dimension_se > 0.003249: M (3)
+:   texture_mean > 14.65:
+:   :...points_worst > 0.09532: M (115)
+:       points_worst <= 0.09532:
+:       :...id <= 927241: M (5)
+:           id > 927241: B (2)
+radius_worst <= 16.77:
+:...points_worst <= 0.1342:
+    :...area_se <= 38.49: B (222/1)
+    :   area_se > 38.49:
+    :   :...symmetry_worst <= 0.206: M (2)
+    :       symmetry_worst > 0.206: B (11/1)
+    points_worst > 0.1342:
+    :...texture_worst > 26.24: M (17)
+        texture_worst <= 26.24:
+        :...points_worst > 0.1865: M (2)
+            points_worst <= 0.1865:
+            :...area_worst <= 809.8: B (14/1)
+                area_worst > 809.8: M (2)
+
+
+Evaluation on training data (399 cases):
+
+	    Decision Tree   
+	  ----------------  
+	  Size      Errors  
+
+	    12    3( 0.8%)   <<
+
+
+	   (a)   (b)    <-classified as
+	  ----  ----
+	   250          (a): class B
+	     3   146    (b): class M
+
+
+	Attribute usage:
+
+	100.00%	radius_worst
+	 98.25%	points_worst
+	 58.90%	area_se
+	 32.33%	texture_mean
+	  8.77%	texture_worst
+	  4.01%	area_worst
+	  3.26%	symmetry_worst
+	  1.75%	id
+	  1.75%	dimension_se
+
+
+Time: 0.0 secs
+
+> predicted<-predict(model,testing)
+> table(predicted)
+predicted
+  B   M 
+100  70 
+> confusionMatrix(predicted,testing$diagnosis) #our decision tree is 91.118% accurate, with a kappa of 0.8985 and a Mcnemars p value of 0.7237
+Confusion Matrix and Statistics
+
+          Reference
+Prediction  B  M
+         B 99  1
+         M  8 62
+                                          
+               Accuracy : 0.9471          
+                 95% CI : (0.9019, 0.9755)
+    No Information Rate : 0.6294          
+    P-Value [Acc > NIR] : <2e-16          
+                                          
+                  Kappa : 0.8891          
+ Mcnemar's Test P-Value : 0.0455          
+                                          
+            Sensitivity : 0.9252          
+            Specificity : 0.9841          
+         Pos Pred Value : 0.9900          
+         Neg Pred Value : 0.8857          
+             Prevalence : 0.6294          
+         Detection Rate : 0.5824          
+   Detection Prevalence : 0.5882          
+      Balanced Accuracy : 0.9547          
+                                          
+       'Positive' Class : B               
+                                          
+> 
+> #now lets try a smaller decision tree using only the top 4 attributes used (from the model summary)
+> submydata<-mydata[,c(2,25,30,16,10)]
+> summary(submydata)
+ diagnosis perimeter_worst   points_worst        area_se         points_mean     
+ B:357     Min.   : 50.41   Min.   :0.00000   Min.   :  6.802   Min.   :0.00000  
+ M:212     1st Qu.: 84.11   1st Qu.:0.06493   1st Qu.: 17.850   1st Qu.:0.02031  
+           Median : 97.66   Median :0.09993   Median : 24.530   Median :0.03350  
+           Mean   :107.26   Mean   :0.11461   Mean   : 40.337   Mean   :0.04892  
+           3rd Qu.:125.40   3rd Qu.:0.16140   3rd Qu.: 45.190   3rd Qu.:0.07400  
+           Max.   :251.20   Max.   :0.29100   Max.   :542.200   Max.   :0.20120  
+> inTrain<-createDataPartition(y=submydata$diagnosis,p=0.7,list=FALSE)
+> training<-submydata[inTrain,]
+> testing<-submydata[-inTrain,]
+> model<-C5.0(training[-1],training$diagnosis)
+> summary(model) #a decision tree of size 12, with an error rate of 2.0%
+
+Call:
+C5.0.default(x = training[-1], y = training$diagnosis)
+
+
+C5.0 [Release 2.07 GPL Edition]  	Thu Mar 03 23:57:11 2016
+-------------------------------
+
+Class specified by attribute `outcome'
+
+Read 399 cases (5 attributes) from undefined.data
+
+Decision tree:
+
+points_mean <= 0.05102:
+:...perimeter_worst <= 113.5: B (230/2)
+:   perimeter_worst > 113.5:
+:   :...points_worst > 0.1294: B (2)
+:       points_worst <= 0.1294:
+:       :...area_se <= 45.5: M (9/2)
+:           area_se > 45.5: B (2)
+points_mean > 0.05102:
+:...perimeter_worst > 114.3: M (118)
+    perimeter_worst <= 114.3:
+    :...perimeter_worst <= 86.04: B (6)
+        perimeter_worst > 86.04:
+        :...points_worst <= 0.1505: B (18/8)
+            points_worst > 0.1505: M (14)
+
+
+Evaluation on training data (399 cases):
+
+	    Decision Tree   
+	  ----------------  
+	  Size      Errors  
+
+	     8   12( 3.0%)   <<
+
+
+	   (a)   (b)    <-classified as
+	  ----  ----
+	   248     2    (a): class B
+	    10   139    (b): class M
+
+
+	Attribute usage:
+
+	100.00%	perimeter_worst
+	100.00%	points_mean
+	 11.28%	points_worst
+	  2.76%	area_se
+
+
+Time: 0.0 secs
+
+> predicted<-predict(model,testing)
+> confusionMatrix(predicted,testing$diagnosis) #92.35% accuracy, Kappa is 0.8355 and Mcnemars p value is 1
+Confusion Matrix and Statistics
+
+          Reference
+Prediction   B   M
+         B 103  10
+         M   4  53
+                                          
+               Accuracy : 0.9176          
+                 95% CI : (0.8657, 0.9542)
+    No Information Rate : 0.6294          
+    P-Value [Acc > NIR] : <2e-16          
+                                          
+                  Kappa : 0.8199          
+ Mcnemar's Test P-Value : 0.1814          
+                                          
+            Sensitivity : 0.9626          
+            Specificity : 0.8413          
+         Pos Pred Value : 0.9115          
+         Neg Pred Value : 0.9298          
+             Prevalence : 0.6294          
+         Detection Rate : 0.6059          
+   Detection Prevalence : 0.6647          
+      Balanced Accuracy : 0.9019          
+                                          
+       'Positive' Class : B  
