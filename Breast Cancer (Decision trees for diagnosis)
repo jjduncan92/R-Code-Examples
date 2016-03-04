@@ -37,46 +37,42 @@
  $ dimension_worst  : num  0.0677 0.0759 0.0788 0.0678 0.0677 ...
 > #lets look at correlation tables to see which values are correlated with diagnosis
 > library(psych)
-> pairs.panels(mydata[2:8]) #use radius_mean as a measure for perimeter_mean and area_mean
-> pairs.panels(mydata[c(2,9:15)]) #use concavity_mean for points_mean, and use radiu_se and perimeter_se
+# we are looking for predictors that are highly correlated with diagnosis (e.g. >0.6)
+# but we are careful to avoid using two predictors that are not only highly correlated with diagnosis, but also with each other
+# this is to simplify the model to include the least amount of predictors
+> pairs.panels(mydata[2:8]) #use radius_mean as a measure for perimeter_mean and area_mean (due to high correlation with each other)
+> pairs.panels(mydata[c(2,9:15)]) #use concavity_mean for points_mean, then use radius_se and perimeter_se
 > pairs.panels(mydata[c(2,16:21)]) #use area_se
 > pairs.panels(mydata[c(2,22:27)]) #use radius_worst as a measure for perimeter_worst and area_worst
 > pairs.panels(mydata[c(2,26:32)]) #use points_worst
 > 
-> #now lets create a decision tree
+> #lets quickly see how the means of some predictors change between B and M diagnoses 
 > library(ggplot2)
-
-Attaching package: ‘ggplot2’
-
-The following objects are masked from ‘package:psych’:
-
-    %+%, alpha
-
 > rad_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=radius_mean))
 > con_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=concavity_mean))
 > area_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=area_se))
 > rad_worst_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=radius_worst))
 > library(gridExtra)
 > grid.arrange(rad_plot,con_plot,area_plot,rad_worst_plot,nrow=2,ncol=2)
+# appears that all 4 of the predictors are higher in M than B diagnoses, thus they should prove useful in the decision tree
 > library(caret)
-Loading required package: lattice
-> inTrain<-createDataPartition(y=mydata$diagnosis,p=0.7,list=FALSE)
+> inTrain<-createDataPartition(y=mydata$diagnosis,p=0.7,list=FALSE) #splits data for use as training and testing subsets
 > training<-mydata[inTrain,]
 > testing<-mydata[-inTrain,]
 > dim(training);dim(testing)
 [1] 399  32
 [1] 170  32
-> table(training$diagnosis)
+> table(training$diagnosis) #we have 250 B  and 149 M diagnoses in the training data set which will generate the decision tree
 
   B   M 
 250 149 
-> table(testing$diagnosis)
+> table(testing$diagnosis) #we have 107 B and 63 M diagnoses in the testing data set which the decision tree will try to predict
 
   B   M 
 107  63 
 > library(C50)
-> model<-C5.0(training[-2],training$diagnosis)
-> summary(model) # a decision tree of 11 levels, error rate is 1.0%, mostly uses perimeter_worst,points_worst,area_se, and points_mean
+> model<-C5.0(training[-2],training$diagnosis) #decision tree model
+> summary(model) # a decision tree of 12 levels, error rate is 0.8%, mostly uses perimeter_worst,points_worst,area_se, and points_mean
 
 Call:
 C5.0.default(x = training[-2], y = training$diagnosis)
@@ -126,7 +122,7 @@ Evaluation on training data (399 cases):
 
 	   (a)   (b)    <-classified as
 	  ----  ----
-	   250          (a): class B
+	   250    0     (a): class B
 	     3   146    (b): class M
 
 
@@ -150,7 +146,8 @@ Time: 0.0 secs
 predicted
   B   M 
 100  70 
-> confusionMatrix(predicted,testing$diagnosis) #our decision tree is 91.118% accurate, with a kappa of 0.8985 and a Mcnemars p value of 0.7237
+> confusionMatrix(predicted,testing$diagnosis) #our decision tree is 94.71% accurate, with a kappa of 0.8891 (i.e. good predictor)
+
 Confusion Matrix and Statistics
 
           Reference
@@ -192,7 +189,7 @@ Prediction  B  M
 > training<-submydata[inTrain,]
 > testing<-submydata[-inTrain,]
 > model<-C5.0(training[-1],training$diagnosis)
-> summary(model) #a decision tree of size 12, with an error rate of 2.0%
+> summary(model) #a decision tree of size 8, with an error rate of 3.0%
 
 Call:
 C5.0.default(x = training[-1], y = training$diagnosis)
@@ -249,7 +246,7 @@ Evaluation on training data (399 cases):
 Time: 0.0 secs
 
 > predicted<-predict(model,testing)
-> confusionMatrix(predicted,testing$diagnosis) #92.35% accuracy, Kappa is 0.8355 and Mcnemars p value is 1
+> confusionMatrix(predicted,testing$diagnosis) #91.76% accuracy, Kappa is 0.8199 
 Confusion Matrix and Statistics
 
           Reference
@@ -275,3 +272,5 @@ Prediction   B   M
       Balanced Accuracy : 0.9019          
                                           
        'Positive' Class : B  
+# by comparison, we see that our first model with 8 predictors gives a better predictive model than the model with 4 predictors
+# this is based on a higher accuracy and higher Kappa value in the first model
