@@ -173,5 +173,5 @@ Available components:
 +     wss[i]<-sum(kmeans(data,centers=i)$withinss)}
 +   plot(1:nc,wss,type="b",xlab="Number of Clusters",ylab="Within groups sum of squares",col="red")}
 > wssplot(mydata) #plots the sum of squares against the number of clusters
-> #the optimal number appears to be 3, where it bends is called the knee.
+> #the optimal number appears to be 3, where it bends is called the knee. 
 > #After the knee, the group sum of squares decreases slowly, suggesting that the knee is the optimal group number
