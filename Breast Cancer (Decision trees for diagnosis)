@@ -79,7 +79,7 @@ Evaluation on training data (399 cases):
 
 
 Time: 0.0 secs
-
+# a decision tree of 9 levels, error rate is 0.8%, mostly uses perimeter_worst,compactness_worst, concavity_mean, and texture_mean
 > predicted<-predict(model,testing1)
 > table(predicted)
 predicted
@@ -112,15 +112,7 @@ Prediction  B  M
                                           
        'Positive' Class : B               
                                           
-> names(mydata)
- [1] "id"                "diagnosis"         "radius_mean"       "texture_mean"     
- [5] "perimeter_mean"    "area_mean"         "smoothness_mean"   "compactness_mean" 
- [9] "concavity_mean"    "points_mean"       "symmetry_mean"     "dimension_mean"   
-[13] "radius_se"         "texture_se"        "perimeter_se"      "area_se"          
-[17] "smoothness_se"     "compactness_se"    "concavity_se"      "points_se"        
-[21] "symmetry_se"       "dimension_se"      "radius_worst"      "texture_worst"    
-[25] "perimeter_worst"   "area_worst"        "smoothness_worst"  "compactness_worst"
-[29] "concavity_worst"   "points_worst"      "symmetry_worst"    "dimension_worst"  
+#our decision tree is 90.59% accurate, with a kappa of 0.7996 and balanced accuracy of 90.24%
 > #now lets try a smaller decision tree using only the top 4 attributes used (from the model summary)
 > submydata<-mydata[,c(2,25,28,4,9)]
 > summary(submydata)
@@ -192,7 +184,7 @@ Evaluation on training data (399 cases):
 
 
 Time: 0.0 secs
-
+#a decision tree of size 9, with an error rate of 3.3%
 > predicted<-predict(model,testing2)
 > confusionMatrix(predicted,testing2$diagnosis)
 Confusion Matrix and Statistics
@@ -221,6 +213,7 @@ Prediction   B   M
                                           
        'Positive' Class : B               
                                           
+#92.35% accuracy, Kappa is 0.8355 and balanced accuracy of 91.64%
 > #lets try to build a decision tree with the library(caret), library(tree), and library(ISLR)
 > library(tree);library(caret);library(ISLR)
 > #we want to minimize deviance
