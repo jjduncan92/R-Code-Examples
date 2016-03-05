@@ -1,4 +1,4 @@
-> #breast cancer data, creating a decision tree to predict diagnosis based on a few predictors
+> #breast cancer data, creating a decision tree to predict diagnosis
 > setwd("C:/Users/James Jaffray Duncan/Desktop/Code Examples/Resources")
 > mydata<-read.csv("breast_cancer.csv")
 > str(mydata) #569 observations on 32 variables
@@ -37,71 +37,66 @@
  $ dimension_worst  : num  0.0677 0.0759 0.0788 0.0678 0.0677 ...
 > #lets look at correlation tables to see which values are correlated with diagnosis
 > library(psych)
-# we are looking for predictors that are highly correlated with diagnosis (e.g. >0.6)
-# but we are careful to avoid using two predictors that are not only highly correlated with diagnosis, but also with each other
-# this is to simplify the model to include the least amount of predictors
-> pairs.panels(mydata[2:8]) #use radius_mean as a measure for perimeter_mean and area_mean (due to high correlation with each other)
-> pairs.panels(mydata[c(2,9:15)]) #use concavity_mean for points_mean, then use radius_se and perimeter_se
+> pairs.panels(mydata[2:8]) #use radius_mean as a measure for perimeter_mean and area_mean
+> pairs.panels(mydata[c(2,9:15)]) #use concavity_mean for points_mean, and use radiu_se and perimeter_se
 > pairs.panels(mydata[c(2,16:21)]) #use area_se
 > pairs.panels(mydata[c(2,22:27)]) #use radius_worst as a measure for perimeter_worst and area_worst
 > pairs.panels(mydata[c(2,26:32)]) #use points_worst
-> 
-> #lets quickly see how the means of some predictors change between B and M diagnoses 
+> #now lets create a decision tree
 > library(ggplot2)
+
+Attaching package: ‘ggplot2’
+
+The following objects are masked from ‘package:psych’:
+
+    %+%, alpha
+
 > rad_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=radius_mean))
 > con_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=concavity_mean))
 > area_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=area_se))
 > rad_worst_plot<-ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=radius_worst))
 > library(gridExtra)
 > grid.arrange(rad_plot,con_plot,area_plot,rad_worst_plot,nrow=2,ncol=2)
-# appears that all 4 of the predictors are higher in M than B diagnoses, thus they should prove useful in the decision tree
 > library(caret)
-> inTrain<-createDataPartition(y=mydata$diagnosis,p=0.7,list=FALSE) #splits data for use as training and testing subsets
-> training<-mydata[inTrain,]
-> testing<-mydata[-inTrain,]
-> dim(training);dim(testing)
-[1] 399  32
-[1] 170  32
-> table(training$diagnosis) #we have 250 B  and 149 M diagnoses in the training data set which will generate the decision tree
+Loading required package: lattice
+> inTrain<-createDataPartition(y=mydata$diagnosis,p=0.7,list=FALSE)
+> training1<-mydata[inTrain,][-1]
+> testing1<-mydata[-inTrain,][-1]
+> dim(training1);dim(testing1)
+[1] 399  31
+[1] 170  31
+> table(training1$diagnosis)
 
   B   M 
 250 149 
-> table(testing$diagnosis) #we have 107 B and 63 M diagnoses in the testing data set which the decision tree will try to predict
+> table(testing1$diagnosis)
 
   B   M 
 107  63 
 > library(C50)
-> model<-C5.0(training[-2],training$diagnosis) #decision tree model
-> summary(model) # a decision tree of 12 levels, error rate is 0.8%, mostly uses perimeter_worst,points_worst,area_se, and points_mean
+> model<-C5.0(training1[-1],training1$diagnosis)
+> summary(model) # a decision tree of 11 levels, error rate is 1.0%, mostly uses perimeter_worst,points_worst,area_se, and points_mean
 
 Call:
-C5.0.default(x = training[-2], y = training$diagnosis)
+C5.0.default(x = training1[-1], y = training1$diagnosis)
 
 
-C5.0 [Release 2.07 GPL Edition]  	Thu Mar 03 23:57:11 2016
+C5.0 [Release 2.07 GPL Edition]  	Sat Mar 05 17:24:25 2016
 -------------------------------
 
 Class specified by attribute `outcome'
 
-Read 399 cases (32 attributes) from undefined.data
+Read 399 cases (31 attributes) from undefined.data
 
 Decision tree:
 
 radius_worst > 16.77:
-:...texture_mean <= 14.65:
+:...texture_mean > 14.65: M (122/2)
+:   texture_mean <= 14.65:
 :   :...dimension_se <= 0.003249: B (4)
-:   :   dimension_se > 0.003249: M (3)
-:   texture_mean > 14.65:
-:   :...points_worst > 0.09532: M (115)
-:       points_worst <= 0.09532:
-:       :...id <= 927241: M (5)
-:           id > 927241: B (2)
+:       dimension_se > 0.003249: M (3)
 radius_worst <= 16.77:
-:...points_worst <= 0.1342:
-    :...area_se <= 38.49: B (222/1)
-    :   area_se > 38.49:
-    :   :...symmetry_worst <= 0.206: M (2)
-    :       symmetry_worst > 0.206: B (11/1)
+:...points_worst <= 0.1342: B (235/4)
     points_worst > 0.1342:
     :...texture_worst > 26.24: M (17)
         texture_worst <= 26.24:
@@ -117,37 +112,33 @@ Evaluation on training data (399 cases):
 	  ----------------  
 	  Size      Errors  
 
-	    12    3( 0.8%)   <<
+	     8    7( 1.8%)   <<
 
 
 	   (a)   (b)    <-classified as
 	  ----  ----
-	   250    0     (a): class B
-	     3   146    (b): class M
+	   248     2    (a): class B
+	     5   144    (b): class M
 
 
 	Attribute usage:
 
 	100.00%	radius_worst
-	 98.25%	points_worst
-	 58.90%	area_se
+	 67.67%	points_worst
 	 32.33%	texture_mean
 	  8.77%	texture_worst
 	  4.01%	area_worst
-	  3.26%	symmetry_worst
-	  1.75%	id
 	  1.75%	dimension_se
 
 
 Time: 0.0 secs
 
-> predicted<-predict(model,testing)
+> predicted<-predict(model,testing1)
 > table(predicted)
 predicted
   B   M 
 100  70 
-> confusionMatrix(predicted,testing$diagnosis) #our decision tree is 94.71% accurate, with a kappa of 0.8891 (i.e. good predictor)
-
+> confusionMatrix(predicted,testing1$diagnosis) #our decision tree is 91.118% accurate, with a kappa of 0.8985 and a Mcnemars p value of 0.7237
 Confusion Matrix and Statistics
 
           Reference
@@ -174,7 +165,6 @@ Prediction  B  M
                                           
        'Positive' Class : B               
                                           
-> 
 > #now lets try a smaller decision tree using only the top 4 attributes used (from the model summary)
 > submydata<-mydata[,c(2,25,30,16,10)]
 > summary(submydata)
@@ -186,16 +176,16 @@ Prediction  B  M
            3rd Qu.:125.40   3rd Qu.:0.16140   3rd Qu.: 45.190   3rd Qu.:0.07400  
            Max.   :251.20   Max.   :0.29100   Max.   :542.200   Max.   :0.20120  
 > inTrain<-createDataPartition(y=submydata$diagnosis,p=0.7,list=FALSE)
-> training<-submydata[inTrain,]
-> testing<-submydata[-inTrain,]
-> model<-C5.0(training[-1],training$diagnosis)
-> summary(model) #a decision tree of size 8, with an error rate of 3.0%
+> training2<-submydata[inTrain,]
+> testing2<-submydata[-inTrain,]
+> model<-C5.0(training2[-1],training2$diagnosis)
+> summary(model) #a decision tree of size 12, with an error rate of 2.0%
 
 Call:
-C5.0.default(x = training[-1], y = training$diagnosis)
+C5.0.default(x = training2[-1], y = training2$diagnosis)
 
 
-C5.0 [Release 2.07 GPL Edition]  	Thu Mar 03 23:57:11 2016
+C5.0 [Release 2.07 GPL Edition]  	Sat Mar 05 17:24:30 2016
 -------------------------------
 
 Class specified by attribute `outcome'
@@ -245,8 +235,8 @@ Evaluation on training data (399 cases):
 
 Time: 0.0 secs
 
-> predicted<-predict(model,testing)
-> confusionMatrix(predicted,testing$diagnosis) #91.76% accuracy, Kappa is 0.8199 
+> predicted<-predict(model,testing2)
+> confusionMatrix(predicted,testing2$diagnosis) #92.35% accuracy, Kappa is 0.8355 and Mcnemars p value is 1
 Confusion Matrix and Statistics
 
           Reference
@@ -271,6 +261,100 @@ Prediction   B   M
    Detection Prevalence : 0.6647          
       Balanced Accuracy : 0.9019          
                                           
-       'Positive' Class : B  
-# by comparison, we see that our first model with 8 predictors gives a better predictive model than the model with 4 predictors
-# this is based on a higher accuracy and higher Kappa value in the first model
+       'Positive' Class : B               
+                                          
+> 
+> #lets try to build a decision tree with the library(caret), library(tree), and library(ISLR)
+> library(tree);library(caret);library(ISLR)
+> #we want to minimize deviance
+> #using more predictors does not necessarily make the tree fit the data better
+> #excessive predictors cause an increase in variance, but reduce bias
+> #method to find the best tree is to start with all predictors then prune the tree
+> #we want the tree with the lowest error rate
+> tree1<-tree(diagnosis~.,training1)
+> plot(tree1);text(tree1,pretty=0)
+> summary(tree1) 
+
+Classification tree:
+tree(formula = diagnosis ~ ., data = training1)
+Variables actually used in tree construction:
+[1] "perimeter_worst" "points_worst"    "radius_se"       "texture_worst"  
+[5] "radius_worst"    "perimeter_mean"  "concavity_worst" "texture_mean"   
+Number of terminal nodes:  12 
+Residual mean deviance:  0.09509 = 36.8 / 387 
+Misclassification error rate: 0.02005 = 8 / 399 
+> #tree of 12 terminal nodes, error rate of 2.005%, deviance of 9.509%
+> cv.tree1<-cv.tree(tree1)
+> #performs cross validation, determines if pruning the tree will improve performance
+> plot(cv.tree1) 
+> #appears that deviance is lowest when the tree size is 4 or 6
+> #for a tree of size 4
+> prune.tree1<-prune.tree(tree1,best=4)
+> plot(prune.tree1);text(prune.tree1,pretty=0)
+> #now lets use the pruned model to make predictions on the testing1 data set
+> tree.pred<-predict(prune.tree1,testing1,type='class')
+> confusionMatrix(tree.pred,testing1$diagnosis) 
+Confusion Matrix and Statistics
+
+          Reference
+Prediction  B  M
+         B 92  1
+         M 15 62
+                                          
+               Accuracy : 0.9059          
+                 95% CI : (0.8517, 0.9452)
+    No Information Rate : 0.6294          
+    P-Value [Acc > NIR] : < 2.2e-16       
+                                          
+                  Kappa : 0.8071          
+ Mcnemar's Test P-Value : 0.001154        
+                                          
+            Sensitivity : 0.8598          
+            Specificity : 0.9841          
+         Pos Pred Value : 0.9892          
+         Neg Pred Value : 0.8052          
+             Prevalence : 0.6294          
+         Detection Rate : 0.5412          
+   Detection Prevalence : 0.5471          
+      Balanced Accuracy : 0.9220          
+                                          
+       'Positive' Class : B               
+                                          
+> #90.59% accuracy, with Kappa of 0.8071, and balanced accuracy of 92.20%
+> 
+> #now what happens when we choose a tree size of 6 (which also had low deviance)
+> prune.tree2<-prune.tree(tree1,best=6)
+> plot(prune.tree2);text(prune.tree2,pretty=0)
+> #now lets use the pruned model to make predictions on the testing1 data set
+> tree.pred2<-predict(prune.tree2,testing1,type='class')
+> confusionMatrix(tree.pred2,testing1$diagnosis) 
+Confusion Matrix and Statistics
+
+          Reference
+Prediction  B  M
+         B 98  1
+         M  9 62
+                                          
+               Accuracy : 0.9412          
+                 95% CI : (0.8945, 0.9714)
+    No Information Rate : 0.6294          
+    P-Value [Acc > NIR] : < 2e-16         
+                                          
+                  Kappa : 0.8771          
+ Mcnemar's Test P-Value : 0.02686         
+                                          
+            Sensitivity : 0.9159          
+            Specificity : 0.9841          
+         Pos Pred Value : 0.9899          
+         Neg Pred Value : 0.8732          
+             Prevalence : 0.6294          
+         Detection Rate : 0.5765          
+   Detection Prevalence : 0.5824          
+      Balanced Accuracy : 0.9500          
+                                          
+       'Positive' Class : B               
+                                          
+> #94.12% accuracy, with Kappa of 0.8771, and balanced accuracy of 95.00%
+> 
+> #this last tree with has the highest balanced accuracy of all the models and the highest Kappa value
+> #thus it is likely the best model to use
