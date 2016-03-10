@@ -1,0 +1,30 @@
+#breast cancer example. Is there a significant difference between the radius_mean of patients diagnosed B and M?
+setwd("C:/Users/James Jaffray Duncan/Desktop/Code Examples/Resources")
+mydata<-read.csv("breast_cancer.csv")
+str(mydata) #569 observations of 32 variables
+library(psych)
+library(ggplot2)
+
+#lets plot a linear model using some of the predictors:
+#use radius mean (which is highly correlated with both perimeter mean and area mean so we reduce),texture, and compactness
+ggplot()+geom_boxplot(data=mydata,aes(x=diagnosis,y=radius_mean))
+#appears that there is a difference between tumour sizes in B and M diagnoses
+
+#test for normality using shapiro 
+str(mydata$radius_mean[mydata$diagnosis=="B"])
+str(mydata$radius_mean[mydata$diagnosis=="M"])
+shapiro.test(mydata$radius_mean[mydata$diagnosis=="B"]) #p>0.05 so the benign data is normally distributed
+shapiro.test(mydata$radius_mean[mydata$diagnosis=="M"]) #p<0.05, so the malignant data is not normally distributed
+
+#use the kruskal-wallis test for the data
+kruskal.test(data=mydata,diagnosis~radius_mean) #p<0.05 so there is a difference
+#to get a better p value, use the post-hoc test Tukey-Kramer
+library(DTK)
+myTK<-TK.test(x=mydata$radius_mean,f=mydata$diagnosis)
+myTK #adjusted p value is zero, so the means differ significantly between diagnosis (we can conclude this since diagnosis only has 2 factors)
+plot(myTK) #the 95% confidence interval for the difference, note that it does not include zero
+
+#lets look at the next set of predictors
+pairs.panels(mydata[c(2,9:15)])
+#most correlation with diagnosis is with concavity, points, radius_se, and perimeter_se
+#since concavity and points are highly correlated, only use points
