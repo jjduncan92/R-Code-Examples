@@ -1,0 +1,96 @@
+#Association rules mining (ARM) or Market Basket Analysis (MBA)- finding things that typically occur together (ex. milk always bought with eggs)
+#assumes all data is categorical, not continuous data. May need to convert continuous data to categorical using bins
+#the accidents data set contains information about 1000 fatal accidents
+#goal is to find which accident conditions occur together
+#techniques used: ARM and converting data into Basket data
+setwd("C:/Users/James Jaffray Duncan/Desktop/Code Examples/Resources")
+accident_data<-read.csv('accidents.csv')
+str(accident_data)
+'data.frame':	1000 obs. of  16 variables:
+ $ Accident_Index                             : Factor w/ 620 levels "2.01E+12","2.01E+264",..: 10 11 14 17 24 25 26 33 36 37 ...
+ $ Police_Force                               : int  1 1 1 1 1 1 1 1 1 1 ...
+ $ Accident_Severity                          : int  3 3 3 3 3 3 3 3 2 3 ...
+ $ Number_of_Vehicles                         : int  3 1 2 2 1 2 2 1 3 2 ...
+ $ Number_of_Casualties                       : int  2 1 1 1 1 1 2 1 2 1 ...
+ $ Day_of_Week                                : int  2 3 3 7 6 5 7 7 5 3 ...
+ $ Local_Authority_.District.                 : int  1 2 2 3 11 4 4 13 14 14 ...
+ $ Road_Type                                  : int  3 2 6 6 6 3 6 3 6 6 ...
+ $ Speed_limit                                : int  30 30 30 30 30 50 30 50 30 30 ...
+ $ Junction_Detail                            : int  3 3 8 6 0 6 3 0 3 6 ...
+ $ Pedestrian_Crossing.Physical_Facilities    : int  5 5 0 1 1 5 0 0 0 0 ...
+ $ Light_Conditions                           : int  4 4 4 4 4 4 4 4 4 4 ...
+ $ Weather_Conditions                         : int  1 1 1 1 1 2 1 1 1 1 ...
+ $ Road_Surface_Conditions                    : int  1 1 1 1 1 2 2 1 1 1 ...
+ $ Urban_or_Rural_Area                        : int  1 1 1 1 1 1 1 1 1 1 ...
+ $ Did_Police_Officer_Attend_Scene_of_Accident: int  1 1 1 2 1 1 1 1 1 1 ...
+#non-continuous data, so we can apply our ARM algorithm. First we need to convert this data frame to basket data
+
+###algorithm for converting our data to basket data:
+colnames<-names(accident_data)
+
+#create a CSV basket data file
+
+basket_str<-""
+for (row in 1:nrow(accident_data)){
+  if (row!=1){
+    basket_str<-paste0(basket_str,"\n")
+  }
+  basket_str<-paste0(basket_str,row,",")
+  
+  for (col in 2:length(colnames)){
+    if (col!=2){
+      basket_str<-paste0(basket_str,",")
+    }
+    basket_str<-paste0(basket_str,colnames[col],"=",accident_data[row,col])
+  }
+}
+write(basket_str,"accidents_basket2.csv")
+###end of conversion algorithm
+#may take some time! be patient
+#data is now in separate 'shopping lists'
+
+#now for the data analysis
+library(arules)
+accidents<-read.transactions("accidents_basket2.csv",sep=",")
+itemFrequencyPlot(accidents,topN=10,type="absolute",col="darkgreen",horiz=TRUE)
+#shows the most common data values, in this case accident_severity=3, officer_attend=1, and pedestrian_crossing=0 are most common
+
+#now which conditions occur together?
+rules<-apriori(accidents,parameter=list(supp=0.1,conf=0.3))
+#minimum support is 0.1, minimum confidence is 0.3. These are high values, we want to avoid too low else it may run too long
+inspect(rules[16:40])
+lhs                            rhs                                             support confidence lift     
+16 {Day_of_Week=5}             => {Did_Police_Officer_Attend_Scene_of_Accident=1} 0.103   0.9196429  1.0195597
+17 {Police_Force=1}            => {Speed_limit=30}                                0.111   0.9173554  1.5391869
+18 {Police_Force=1}            => {Urban_or_Rural_Area=1}                         0.118   0.9752066  1.6039582
+19 {Police_Force=1}            => {Light_Conditions=4}                            0.118   0.9752066  1.5142960
+20 {Police_Force=1}            => {Did_Police_Officer_Attend_Scene_of_Accident=1} 0.110   0.9090909  1.0078613
+21 {Weather_Conditions=2}      => {Road_Surface_Conditions=2}                     0.124   0.9841270  2.9822030
+22 {Road_Surface_Conditions=2} => {Weather_Conditions=2}                          0.124   0.3757576  2.9822030
+23 {Weather_Conditions=2}      => {Accident_Severity=3}                           0.103   0.8174603  1.0400258
+24 {Weather_Conditions=2}      => {Pedestrian_Crossing.Physical_Facilities=0}     0.102   0.8095238  0.9479202
+25 {Weather_Conditions=2}      => {Did_Police_Officer_Attend_Scene_of_Accident=1} 0.123   0.9761905  1.0822511
+26 {Day_of_Week=6}             => {Road_Type=6}                                   0.106   0.7794118  1.0323335
+27 {Day_of_Week=6}             => {Accident_Severity=3}                           0.104   0.7647059  0.9729082
+28 {Day_of_Week=6}             => {Pedestrian_Crossing.Physical_Facilities=0}     0.110   0.8088235  0.9471002
+29 {Day_of_Week=6}             => {Did_Police_Officer_Attend_Scene_of_Accident=1} 0.122   0.8970588  0.9945220
+30 {Road_Type=3}               => {Road_Surface_Conditions=1}                     0.100   0.6756757  1.0623831
+31 {Road_Type=3}               => {Light_Conditions=4}                            0.100   0.6756757  1.0491858
+32 {Road_Type=3}               => {Weather_Conditions=1}                          0.115   0.7770270  0.9949130
+33 {Road_Type=3}               => {Accident_Severity=3}                           0.122   0.8243243  1.0487587
+34 {Road_Type=3}               => {Pedestrian_Crossing.Physical_Facilities=0}     0.114   0.7702703  0.9019558
+35 {Road_Type=3}               => {Did_Police_Officer_Attend_Scene_of_Accident=1} 0.138   0.9324324  1.0337388
+36 {Accident_Severity=2}       => {Number_of_Vehicles=1}                          0.120   0.6521739  1.2422360
+37 {Accident_Severity=2}       => {Speed_limit=30}                                0.106   0.5760870  0.9665889
+38 {Accident_Severity=2}       => {Urban_or_Rural_Area=1}                         0.103   0.5597826  0.9206951
+39 {Accident_Severity=2}       => {Road_Surface_Conditions=1}                     0.114   0.6195652  0.9741591
+40 {Accident_Severity=2}       => {Light_Conditions=4}                            0.116   0.6304348  0.9789360
+#here we see some of the rules. 
+#look at row 23. When an accident occurs, if weather_condition=2, there is a 82% chance that accident_severity=3, suggesting that poor weather causes more severe accidents
+#determining which factors are associated with each other can help inform governments where to place additional precautions
+#this could include additional traffic signs to advise drivers to be cautiousduring poor weather conditions
+#look at row 31, which tells us that when an accident occurs on a road of type 3, there is a 67% chance that poor lighting (light_conditions=4) were present
+#from this information, the government could add more street lights to roads of type 3 to reduce accidents in those areas
+
+#we can pull out much more information from this about association rules between parameters
+  
