@@ -1,4 +1,4 @@
-#Association rules mining (ARM) or Market Basket Analysis (MBA)- finding things that typically occur together (ex. milk always bought with eggs)
+#Association rules mining (ARM) or Market Basket Analysis (MBA)- finding things that typically occur together 
 #assumes all data is categorical, not continuous data. May need to convert continuous data to categorical using bins
 #the accidents data set contains information about 1000 fatal accidents
 #goal is to find which accident conditions occur together
