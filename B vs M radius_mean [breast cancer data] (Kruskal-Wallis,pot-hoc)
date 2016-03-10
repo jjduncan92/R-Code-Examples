@@ -24,7 +24,4 @@ myTK<-TK.test(x=mydata$radius_mean,f=mydata$diagnosis)
 myTK #adjusted p value is zero, so the means differ significantly between diagnosis (we can conclude this since diagnosis only has 2 factors)
 plot(myTK) #the 95% confidence interval for the difference, note that it does not include zero
 
-#lets look at the next set of predictors
-pairs.panels(mydata[c(2,9:15)])
-#most correlation with diagnosis is with concavity, points, radius_se, and perimeter_se
-#since concavity and points are highly correlated, only use points
+
