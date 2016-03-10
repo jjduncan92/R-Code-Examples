@@ -58,6 +58,9 @@ itemFrequencyPlot(accidents,topN=10,type="absolute",col="darkgreen",horiz=TRUE)
 #now which conditions occur together?
 rules<-apriori(accidents,parameter=list(supp=0.1,conf=0.3))
 #minimum support is 0.1, minimum confidence is 0.3. These are high values, we want to avoid too low else it may run too long
+#support(X,Y) = count(accidents with X AND Y)/Number of accidents
+#confidence (X given Y) = support(X AND Y)/support(X)
+#lift (X given Y) = confidence(x given y)/support(Y)
 inspect(rules[16:40])
 lhs                            rhs                                             support confidence lift     
 16 {Day_of_Week=5}             => {Did_Police_Officer_Attend_Scene_of_Accident=1} 0.103   0.9196429  1.0195597
@@ -86,11 +89,12 @@ lhs                            rhs                                             s
 39 {Accident_Severity=2}       => {Road_Surface_Conditions=1}                     0.114   0.6195652  0.9741591
 40 {Accident_Severity=2}       => {Light_Conditions=4}                            0.116   0.6304348  0.9789360
 #here we see some of the rules. 
+#look at row 31, which tells us that when an accident occurs on a road of type 3, there is a 67% chance that poor lighting (light_conditions=4) were present
+#from this information, the government could add more street lights to roads of type 3 to reduce accidents in those areas
+
 #look at row 23. When an accident occurs, if weather_condition=2, there is a 82% chance that accident_severity=3, suggesting that poor weather causes more severe accidents
 #determining which factors are associated with each other can help inform governments where to place additional precautions
 #this could include additional traffic signs to advise drivers to be cautiousduring poor weather conditions
-#look at row 31, which tells us that when an accident occurs on a road of type 3, there is a 67% chance that poor lighting (light_conditions=4) were present
-#from this information, the government could add more street lights to roads of type 3 to reduce accidents in those areas
 
 #we can pull out much more information from this about association rules between parameters
   
