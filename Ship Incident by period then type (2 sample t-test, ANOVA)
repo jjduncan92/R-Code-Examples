@@ -1,0 +1,70 @@
+#investigate 1: if there is a relationship between time period and number of incidents
+#investigate 2: if there is a relationship between ship type and number of accidents
+> library(MASS)
+> head(ships)
+  type year period service incidents
+1    A   60     60     127         0
+2    A   60     75      63         0
+3    A   65     60    1095         3
+4    A   65     75    1095         4
+5    A   70     60    1512         6
+6    A   70     75    3353        18
+
+###INVESTIGATION 1###
+> #interested in the relationship between period and incident  
+> attach(ships)
+> boxplot(data=ships,incidents~period)
+> #H0: mean incidents is equal in each period
+> t.test(incidents~period) 
+
+	Welch Two Sample t-test
+
+data:  incidents by period
+t = -0.82087, df = 37.991, p-value = 0.4168
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -13.518049   5.718049
+sample estimates:
+mean in group 60 mean in group 75 
+            6.95            10.85 
+#p value greater than 0.05, therefore there is no difference in means
+
+###INVESTIGATION 2###
+> #is there a difference in incedent rates between types of ships?
+> plot(incidents~type) #appears that type B has more incidents than all other types
+> myanova<-aov(incidents~type)
+> summary(myanova) 
+            Df Sum Sq Mean Sq F value   Pr(>F)    
+type         4   5235  1308.8   13.11 1.26e-06 ***
+Residuals   35   3494    99.8                     
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+#since p value is significant, there is a significant difference in the mean incidents of types of ships (not sure which one yet)
+> TukeyHSD(myanova) 
+  Tukey multiple comparisons of means
+    95% family-wise confidence level
+
+Fit: aov(formula = incidents ~ type)
+
+$type
+       diff       lwr       upr     p adj
+B-A  26.375  12.01151  40.73849 0.0000645
+C-A  -3.750 -18.11349  10.61349 0.9427613
+D-A  -3.125 -17.48849  11.23849 0.9699518
+E-A  -1.250 -15.61349  13.11349 0.9990913
+C-B -30.125 -44.48849 -15.76151 0.0000067
+D-B -29.500 -43.86349 -15.13651 0.0000098
+E-B -27.625 -41.98849 -13.26151 0.0000304
+D-C   0.625 -13.73849  14.98849 0.9999418
+E-C   2.500 -11.86349  16.86349 0.9867912
+E-D   1.875 -12.48849  16.23849 0.9955811
+
+#all p values comparing B to A, C, D, and E are significant
+> plot(TukeyHSD(myanova)) #visualize the confidence intervals, if they contain zero, not significant difference
+> coef(myanova) #using type A incident number as a reference, we see that type B has a mean 26 times larger
+#and C,D, and E have means smaller than type A.
+(Intercept)       typeB       typeC       typeD       typeE 
+      5.250      26.375      -3.750      -3.125      -1.250 
+      
+#Therefore, ships of type B are signficantly more likely to get into incidents than any other ship type.
